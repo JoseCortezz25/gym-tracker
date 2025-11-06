@@ -4,8 +4,8 @@
 // Following Server Actions pattern: validation + authorization + logic + persistence
 
 import { hash, compare } from 'bcryptjs';
-import { prisma } from '@/lib/db';
 import { signIn, signOut } from '@/lib/auth';
+import { authRepository } from './repository';
 import {
   loginSchema,
   registerSchema,
@@ -56,9 +56,7 @@ export async function registerUser(input: unknown): Promise<AuthResponse> {
     const { email, password, name } = validated.data;
 
     // 2. Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    const existingUser = await authRepository.findByEmail(email);
 
     if (existingUser) {
       return {
@@ -71,20 +69,27 @@ export async function registerUser(input: unknown): Promise<AuthResponse> {
     const passwordHash = await hash(password, 12);
 
     // 4. Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name: name || null
-      }
+    const user = await authRepository.create({
+      email,
+      passwordHash,
+      name: name || null
     });
 
     // 5. Auto-login after registration
-    await signIn('credentials', {
+    const result = await signIn('credentials', {
       email,
       password,
       redirect: false
     });
+
+    // Check if sign in was successful
+    if (result?.error) {
+      return {
+        success: false,
+        error:
+          'Account created but failed to sign in. Please try logging in manually.'
+      };
+    }
 
     // 6. Return success
     return {
@@ -122,9 +127,7 @@ export async function loginUser(input: unknown): Promise<AuthResponse> {
     const { email, password } = validated.data;
 
     // 2. Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    const user = await authRepository.findByEmail(email);
 
     if (!user) {
       return {
@@ -144,10 +147,7 @@ export async function loginUser(input: unknown): Promise<AuthResponse> {
     }
 
     // 4. Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
-    });
+    await authRepository.updateLastLogin(user.id);
 
     // 5. Sign in with NextAuth
     const result = await signIn('credentials', {
@@ -215,9 +215,7 @@ export async function requestPasswordReset(
     const { email } = validated.data;
 
     // 2. Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    const user = await authRepository.findByEmail(email);
 
     // Always return success to prevent email enumeration
     // In production, we would send an email here

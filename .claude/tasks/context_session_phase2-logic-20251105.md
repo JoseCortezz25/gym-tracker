@@ -1080,3 +1080,227 @@ package.json                  # Added react-hook-form dependencies
 
 ---
 
+## [2025-11-05 20:30] code-reviewer: Phase 2 Auth + Exercises Code Review Complete
+
+**Task**: Comprehensive code review of Phase 2B-C implementation against critical constraints, file structure, and tech stack rules
+
+**Report Created**: `.claude/plans/review-phase2-auth-exercises-report.md`
+
+**Status**: CRITICAL VIOLATIONS FOUND - IMMEDIATE ACTION REQUIRED
+
+### Review Summary
+
+**Files Reviewed**: 14
+**Violations Found**: 8
+- **Critical Issues**: 5
+- **Warnings**: 3
+
+**Pass Rate**: 43% (6 files passed, 8 files with issues)
+
+### Critical Violations Found
+
+**VIOLATION 1: Direct Database Access (CRITICAL)**
+- **Files**: `src/domains/auth/actions.ts`, `src/domains/exercises/actions.ts`
+- **Rule**: Repository Pattern (Architecture Patterns Section 4.1)
+- **Issue**: Server Actions directly import and use `prisma` from `@/lib/db`
+- **Impact**: Violates separation of concerns, tight coupling, difficult to test
+- **Required**: Create repository layer for both domains
+
+**VIOLATION 2: Login Page Unnecessary Client Component (CRITICAL)**
+- **File**: `src/app/(auth)/login/page.tsx`
+- **Rule**: React Server Components as architectural foundation (Critical Constraint #1)
+- **Issue**: Login page uses `'use client'` and React Hook Form for simple 2-field form
+- **Impact**: Larger bundle, slower load, violates "Server Components by default"
+- **Required**: Refactor to Server Component + useActionState pattern
+
+**VIOLATION 3: Missing Session Validation (CRITICAL)**
+- **File**: `src/domains/exercises/actions.ts:21-23` (getAllExercises)
+- **Rule**: Server Actions must validate session (Critical Constraint #2)
+- **Issue**: Fetches session but doesn't validate it, inconsistent handling
+- **Impact**: Security risk if protected data exposed, unpredictable behavior
+- **Required**: Clarify auth requirement and validate accordingly
+
+**VIOLATION 4: Export Pattern Inconsistency (HIGH)**
+- **File**: `src/app/api/auth/[...nextauth]/route.ts`
+- **Rule**: Named exports only (Critical Constraint #4)
+- **Issue**: Destructured export `export const { GET, POST } = handlers;` lacks explanation
+- **Impact**: Confusing for developers, harder to trace
+- **Required**: Add comment explaining NextAuth requirement
+
+**VIOLATION 5: Inconsistent Error Handling (WARNING)**
+- **Files**: `src/domains/auth/actions.ts:89-93`
+- **Issue**: signIn result not checked after auto-login in registerUser
+- **Impact**: Auto-login might fail silently
+- **Required**: Check signIn result.error before returning success
+
+### Warnings
+
+**WARNING 1: Console.log in Production**
+- **Files**: Multiple (auth and exercises actions)
+- **Issue**: Using console.error without conditional logging
+- **Recommendation**: Use proper logging service or conditional logging
+
+**WARNING 2: Hardcoded Text**
+- **File**: `src/app/(auth)/register/page.tsx:104, 109`
+- **Issue**: "Name (Optional)" and placeholder not in text-map
+- **Recommendation**: Add to authTextMap for consistency
+
+### Compliance Matrix
+
+**Critical Constraints**: 5/11 PASS (45%)
+- FAIL: React Server Components (login page)
+- FAIL: Server Actions (direct DB access, session validation)
+- PASS: Named Exports (mostly)
+- PASS: Screaming Architecture
+- PASS: Naming Conventions
+- PASS: State Management (not used yet)
+- PASS: Route Protection
+- WARNING: Forms (React Hook Form for simple form)
+
+**File Structure**: 5/6 PASS (83%)
+- PASS: All naming conventions followed
+- PASS: Domain organization correct
+- PASS: Absolute imports used
+
+**Tech Stack**: 4/5 PASS (80%)
+- PASS: Package manager (pnpm)
+- WARNING: Form handling (React Hook Form for simple login)
+- PASS: Validation (Zod)
+- PASS: Styling (Tailwind)
+
+### Positive Highlights
+
+**Excellent Practices**:
+- Domain organization perfectly follows screaming architecture
+- Type-safe response patterns (AuthResponse, ExercisesResponse)
+- Business rules enforced at action level (can't delete exercises in use)
+- Middleware correctly configured for route protection
+- Clean separation: schemas, types, actions
+- Consistent error response format
+- Password hashing with bcrypt (security)
+- Absolute imports (@/) everywhere
+- Environment variables template
+
+### Refactoring Plan
+
+**Priority 1: Critical Violations (MUST FIX BEFORE PHASE 2D)**
+
+**Estimated Effort**: 2-3 hours
+
+1. **Create Auth Repository** (1 hour)
+   - File: `src/domains/auth/repository.ts`
+   - Extract Prisma calls from actions.ts
+   - Methods: findUserByEmail, createUser, updateLastLogin
+   - Update actions.ts to use repository
+
+2. **Create Exercises Repository** (1 hour)
+   - File: `src/domains/exercises/repository.ts`
+   - Extract Prisma calls from actions.ts
+   - Methods: findAll, findById, create, delete, checkInUse
+   - Update actions.ts to use repository
+
+3. **Refactor Login Page to Server Component** (30 min)
+   - Create `src/domains/auth/components/login-form.tsx` (Client)
+   - Update `src/app/(auth)/login/page.tsx` to Server Component
+   - Use useActionState + useFormStatus pattern
+   - Create loginAction compatible with useActionState
+
+4. **Fix Session Validation in getAllExercises** (15 min)
+   - Decide: auth required or optional?
+   - Add validation or document decision
+
+5. **Add NextAuth Export Comment** (5 min)
+   - Explain destructured export pattern
+
+**Priority 2: Warnings (NICE TO HAVE)**
+
+**Estimated Effort**: 1-2 hours
+
+1. Improve error handling in registerUser
+2. Replace console.log with logger
+3. Externalize hardcoded text
+
+### Critical Recommendations
+
+**IMMEDIATE ACTIONS**:
+1. STOP - Do not proceed to Phase 2D (Routines) until Priority 1 fixes complete
+2. The repository pattern violation will compound if not fixed now
+3. Future domains (routines, workouts) will repeat the same mistake
+4. Accumulated technical debt will make refactoring exponentially harder
+
+**WHY THIS MATTERS**:
+- Session context line 29 explicitly states: "Repository pattern for all data access"
+- Critical constraints document section 4.1 requires abstraction layer
+- Direct database access violates architectural foundation
+- Testing becomes impossible without mocking Prisma everywhere
+- Changing database providers in future requires rewriting all Server Actions
+
+### Questions for Parent Agent
+
+**Q1: Repository Pattern Enforcement**
+- Should we create a base repository class to reduce boilerplate?
+- Or keep repositories as simple object exports?
+- Recommendation: Simple exports for MVP, class-based for Phase 3
+
+**Q2: Auth Strategy for Public Endpoints**
+- Should getAllExercises require auth or be public?
+- Current code is inconsistent (fetches session but doesn't validate)
+- Recommendation: Public for predefined, auth required for custom
+
+**Q3: Form Strategy Clarification**
+- Should all auth forms use useActionState (per constraint #9)?
+- Or is React Hook Form acceptable for auth forms?
+- Recommendation: Login = useActionState, Register = React Hook Form (4+ fields)
+
+### Next Steps
+
+**For Parent Agent**:
+1. Review report: `.claude/plans/review-phase2-auth-exercises-report.md`
+2. Decide on Q1, Q2, Q3 above
+3. Implement Priority 1 refactoring plan (2-3 hours)
+4. Re-run code-reviewer to verify fixes
+5. Once PASS: proceed to Phase 2D (Routines domain)
+
+**DO NOT PROCEED TO PHASE 2D UNTIL**:
+- Repository layer created for auth and exercises
+- Login page refactored to Server Component
+- Session validation fixed in getAllExercises
+- Code review passes with 0 critical violations
+
+**Success Criteria for Re-Review**:
+- No direct `prisma` imports in Server Actions
+- All Server Actions use repository pattern
+- Login page is Server Component with useActionState
+- All protected endpoints validate session
+- Pass rate: 90%+ (max 1 warning)
+
+### Files to Create (Priority 1)
+
+```
+src/domains/auth/
+├── repository.ts          # NEW - Auth data access layer
+└── components/
+    └── login-form.tsx     # NEW - Client Component for form
+
+src/domains/exercises/
+└── repository.ts          # NEW - Exercises data access layer
+```
+
+### Files to Update (Priority 1)
+
+```
+src/domains/auth/
+└── actions.ts             # REPLACE prisma with authRepository
+
+src/domains/exercises/
+└── actions.ts             # REPLACE prisma with exercisesRepository
+
+src/app/(auth)/login/
+└── page.tsx               # REMOVE 'use client', use LoginForm component
+
+src/app/api/auth/[...nextauth]/
+└── route.ts               # ADD comment explaining export pattern
+```
+
+---
+

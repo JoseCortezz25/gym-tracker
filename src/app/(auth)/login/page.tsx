@@ -1,59 +1,42 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Alert } from '@/components/ui/alert';
 import { PasswordInput } from '@/domains/auth/molecules/password-input';
 import { authTextMap } from '@/domains/auth/auth.text-map';
-import { loginSchema, type LoginInput } from '@/domains/auth/schema';
 import { loginUser } from '@/domains/auth/actions';
 
 /**
- * Login Page
- * Authentication page for existing users
+ * Login Page - Server Component
+ * Simple 2-field form using Server Actions (following critical-constraints.md #1)
  */
-export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+export default async function LoginPage({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params.error;
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      rememberMe: false
+  async function handleLogin(formData: FormData) {
+    'use server';
+
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    const result = await loginUser({ email, password });
+
+    if (!result.success) {
+      // Redirect with error message
+      redirect(`/login?error=${encodeURIComponent(result.error)}`);
     }
-  });
 
-  const onSubmit = async (data: LoginInput) => {
-    try {
-      setError(null);
-      const result = await loginUser(data);
-
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-
-      // Redirect to dashboard on success
-      router.push('/dashboard');
-      router.refresh();
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
-    }
-  };
+    // Success - redirect to dashboard
+    redirect('/dashboard');
+  }
 
   return (
     <div className="space-y-6">
@@ -73,7 +56,7 @@ export default function LoginPage() {
 
       {/* Login Form */}
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        action={handleLogin}
         className="space-y-4"
         role="form"
         aria-label="Login form"
@@ -82,51 +65,30 @@ export default function LoginPage() {
         <div className="space-y-2">
           <Label htmlFor="email">{authTextMap.login.email.label}</Label>
           <Input
-            {...register('email')}
             id="email"
+            name="email"
             type="email"
             placeholder={authTextMap.login.email.placeholder}
             autoComplete="email"
-            aria-invalid={errors.email ? 'true' : 'false'}
+            required
           />
-          {errors.email && (
-            <p className="text-sm text-red-600 dark:text-red-500">
-              {errors.email.message}
-            </p>
-          )}
         </div>
 
         {/* Password Field */}
         <div className="space-y-2">
           <Label htmlFor="password">{authTextMap.login.password.label}</Label>
           <PasswordInput
-            {...register('password')}
             id="password"
+            name="password"
             placeholder={authTextMap.login.password.placeholder}
             autoComplete="current-password"
-            aria-invalid={errors.password ? 'true' : 'false'}
+            required
           />
-          {errors.password && (
-            <p className="text-sm text-red-600 dark:text-red-500">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        {/* Remember Me Checkbox */}
-        <div className="flex items-center space-x-2">
-          <Checkbox id="remember" {...register('rememberMe')} />
-          <Label
-            htmlFor="remember"
-            className="text-sm leading-none font-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            {authTextMap.login.rememberMe.label}
-          </Label>
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in...' : authTextMap.login.submit}
+        <Button type="submit" className="w-full">
+          {authTextMap.login.submit}
         </Button>
 
         {/* Forgot Password Link */}

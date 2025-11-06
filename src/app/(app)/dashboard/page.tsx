@@ -124,12 +124,11 @@ export default function DashboardPage() {
             icon={Dumbbell}
             heading={text.recentActivity.empty}
             message="Create a routine and start your first workout to track your progress"
-            action={{
-              label: 'My Routines',
-              onClick: () => {
-                window.location.href = '/routines';
-              }
-            }}
+            customAction={
+              <Button size="lg" asChild>
+                <Link href="/routines">My Routines</Link>
+              </Button>
+            }
           />
         )}
       </div>

@@ -3,6 +3,7 @@
 // Exercises Domain Server Actions
 
 import { auth } from '@/lib/auth';
+import { exercisesRepository } from './repository';
 import { prisma } from '@/lib/db';
 import {
   exerciseFiltersSchema,
@@ -35,6 +36,8 @@ export async function getAllExercises(
 
     const { category, search, isPredefined } = validatedFilters.data;
 
+    // Complex filtering logic still needs direct Prisma access
+    // TODO: Consider moving complex query logic to repository
     // Build where clause
     type WhereClause = {
       category?: typeof category;
@@ -64,7 +67,7 @@ export async function getAllExercises(
       if (isPredefined) {
         where.isPredefined = true;
       } else {
-        // Show only user's custom exercises
+        // Show only user's custom exercises - requires authentication
         if (!session?.user) {
           return {
             success: false,
@@ -76,13 +79,14 @@ export async function getAllExercises(
       }
     } else {
       // Show predefined + user's custom exercises
+      // Allow unauthenticated users to see predefined exercises only
       if (session?.user) {
         where.OR = [
           { isPredefined: true },
           { isPredefined: false, userId: session.user.id }
         ];
       } else {
-        // Not authenticated: only show predefined
+        // Not authenticated: only show predefined exercises
         where.isPredefined = true;
       }
     }
@@ -113,9 +117,7 @@ export async function getAllExercises(
 
 export async function getExerciseById(id: string): Promise<ExerciseResponse> {
   try {
-    const exercise = await prisma.exercise.findUnique({
-      where: { id }
-    });
+    const exercise = await exercisesRepository.findById(id);
 
     if (!exercise) {
       return {
@@ -186,15 +188,12 @@ export async function createCustomExercise(
       };
     }
 
-    // 4. Create exercise
-    const exercise = await prisma.exercise.create({
-      data: {
-        name,
-        category,
-        description,
-        isPredefined: false,
-        userId: session.user.id
-      }
+    // 4. Create exercise via repository
+    const exercise = await exercisesRepository.create({
+      name,
+      category,
+      description,
+      userId: session.user.id
     });
 
     return {
@@ -230,9 +229,7 @@ export async function deleteCustomExercise(
     }
 
     // 2. Check if exercise exists and belongs to user
-    const exercise = await prisma.exercise.findUnique({
-      where: { id }
-    });
+    const exercise = await exercisesRepository.findById(id);
 
     if (!exercise) {
       return {
@@ -278,10 +275,8 @@ export async function deleteCustomExercise(
       };
     }
 
-    // 4. Delete exercise
-    await prisma.exercise.delete({
-      where: { id }
-    });
+    // 4. Delete exercise via repository
+    await exercisesRepository.delete(id, session.user.id);
 
     return {
       success: true
