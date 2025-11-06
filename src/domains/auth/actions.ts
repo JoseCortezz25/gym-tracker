@@ -72,7 +72,7 @@ export async function registerUser(input: unknown): Promise<AuthResponse> {
     const user = await authRepository.create({
       email,
       passwordHash,
-      name: name || null
+      name: name ?? (undefined as string | undefined)
     });
 
     // 5. Auto-login after registration
