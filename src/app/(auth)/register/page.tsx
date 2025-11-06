@@ -2,27 +2,60 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert } from '@/components/ui/alert';
 import { PasswordInput } from '@/domains/auth/molecules/password-input';
 import { PasswordRequirements } from '@/domains/auth/molecules/password-requirements';
 import { authTextMap } from '@/domains/auth/auth.text-map';
+import { registerSchema, type RegisterInput } from '@/domains/auth/schema';
+import { registerUser } from '@/domains/auth/actions';
 
 /**
  * Register Page
  * Account creation page for new users
- * UI-only implementation (no business logic)
  */
 export default function RegisterPage() {
-  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder handler (UI-only phase)
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Business logic will be added in Phase 2
-    // eslint-disable-next-line no-console
-    console.log('Register form submitted');
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting }
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      name: ''
+    }
+  });
+
+  const password = watch('password');
+
+  const onSubmit = async (data: RegisterInput) => {
+    try {
+      setError(null);
+      const result = await registerUser(data);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      // Redirect to dashboard on success
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    }
   };
 
   return (
@@ -34,9 +67,16 @@ export default function RegisterPage() {
         </h2>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <p className="text-sm">{error}</p>
+        </Alert>
+      )}
+
       {/* Register Form */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         className="space-y-4"
         role="form"
         aria-label="Register form"
@@ -45,11 +85,29 @@ export default function RegisterPage() {
         <div className="space-y-2">
           <Label htmlFor="email">{authTextMap.register.email.label}</Label>
           <Input
+            {...register('email')}
             id="email"
             type="email"
             placeholder={authTextMap.register.email.placeholder}
             autoComplete="email"
-            required
+            aria-invalid={errors.email ? 'true' : 'false'}
+          />
+          {errors.email && (
+            <p className="text-sm text-red-600 dark:text-red-500">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        {/* Name Field (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="name">Name (Optional)</Label>
+          <Input
+            {...register('name')}
+            id="name"
+            type="text"
+            placeholder="Enter your name"
+            autoComplete="name"
           />
         </div>
 
@@ -59,39 +117,47 @@ export default function RegisterPage() {
             {authTextMap.register.password.label}
           </Label>
           <PasswordInput
+            {...register('password')}
             id="password"
             placeholder={authTextMap.register.password.placeholder}
             autoComplete="new-password"
-            value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPassword(e.target.value)
-            }
-            required
+            aria-invalid={errors.password ? 'true' : 'false'}
             aria-describedby="password-requirements"
           />
+          {errors.password && (
+            <p className="text-sm text-red-600 dark:text-red-500">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         {/* Password Requirements */}
         <div id="password-requirements">
-          <PasswordRequirements password={password} />
+          <PasswordRequirements password={password || ''} />
         </div>
 
         {/* Confirm Password Field */}
         <div className="space-y-2">
-          <Label htmlFor="confirm-password">
+          <Label htmlFor="confirmPassword">
             {authTextMap.register.confirmPassword.label}
           </Label>
           <PasswordInput
-            id="confirm-password"
+            {...register('confirmPassword')}
+            id="confirmPassword"
             placeholder={authTextMap.register.confirmPassword.placeholder}
             autoComplete="new-password"
-            required
+            aria-invalid={errors.confirmPassword ? 'true' : 'false'}
           />
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-600 dark:text-red-500">
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full">
-          {authTextMap.register.submit}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Creating account...' : authTextMap.register.submit}
         </Button>
 
         {/* Login Link */}

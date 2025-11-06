@@ -1,26 +1,58 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Alert } from '@/components/ui/alert';
 import { PasswordInput } from '@/domains/auth/molecules/password-input';
 import { authTextMap } from '@/domains/auth/auth.text-map';
+import { loginSchema, type LoginInput } from '@/domains/auth/schema';
+import { loginUser } from '@/domains/auth/actions';
 
 /**
  * Login Page
  * Authentication page for existing users
- * UI-only implementation (no business logic)
  */
 export default function LoginPage() {
-  // Placeholder handlers (UI-only phase)
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Business logic will be added in Phase 2
-    // eslint-disable-next-line no-console
-    console.log('Login form submitted');
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false
+    }
+  });
+
+  const onSubmit = async (data: LoginInput) => {
+    try {
+      setError(null);
+      const result = await loginUser(data);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      // Redirect to dashboard on success
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    }
   };
 
   return (
@@ -32,9 +64,16 @@ export default function LoginPage() {
         </h2>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <p className="text-sm">{error}</p>
+        </Alert>
+      )}
+
       {/* Login Form */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         className="space-y-4"
         role="form"
         aria-label="Login form"
@@ -43,28 +82,40 @@ export default function LoginPage() {
         <div className="space-y-2">
           <Label htmlFor="email">{authTextMap.login.email.label}</Label>
           <Input
+            {...register('email')}
             id="email"
             type="email"
             placeholder={authTextMap.login.email.placeholder}
             autoComplete="email"
-            required
+            aria-invalid={errors.email ? 'true' : 'false'}
           />
+          {errors.email && (
+            <p className="text-sm text-red-600 dark:text-red-500">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         {/* Password Field */}
         <div className="space-y-2">
           <Label htmlFor="password">{authTextMap.login.password.label}</Label>
           <PasswordInput
+            {...register('password')}
             id="password"
             placeholder={authTextMap.login.password.placeholder}
             autoComplete="current-password"
-            required
+            aria-invalid={errors.password ? 'true' : 'false'}
           />
+          {errors.password && (
+            <p className="text-sm text-red-600 dark:text-red-500">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         {/* Remember Me Checkbox */}
         <div className="flex items-center space-x-2">
-          <Checkbox id="remember" />
+          <Checkbox id="remember" {...register('rememberMe')} />
           <Label
             htmlFor="remember"
             className="text-sm leading-none font-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -74,8 +125,8 @@ export default function LoginPage() {
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full">
-          {authTextMap.login.submit}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Signing in...' : authTextMap.login.submit}
         </Button>
 
         {/* Forgot Password Link */}

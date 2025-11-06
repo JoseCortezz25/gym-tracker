@@ -130,3 +130,6 @@ $RECYCLE.BIN/
 
 .cursor
 *storybook.log
+
+/src/generated/prisma
+.env

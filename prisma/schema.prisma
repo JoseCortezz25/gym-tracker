@@ -1,0 +1,210 @@
+// Gym Tracker - Prisma Schema
+// Database: Supabase (PostgreSQL)
+// Phase 2: Business Logic & Data Layer
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// AUTH DOMAIN
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  routines       Routine[]
+  workoutSessions WorkoutSession[]
+  customExercises Exercise[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// EXERCISES DOMAIN
+// ============================================================================
+
+enum ExerciseCategory {
+  CHEST
+  BACK
+  LEGS
+  SHOULDERS
+  ARMS
+  CORE
+  CARDIO
+}
+
+model Exercise {
+  id           String           @id @default(cuid())
+  name         String
+  category     ExerciseCategory
+  description  String?
+  isPredefined Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+
+  // Relations (null if predefined exercise)
+  userId       String?
+  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Usage tracking
+  routineExercises RoutineExercise[]
+  workoutExercises WorkoutExercise[]
+
+  @@unique([name, userId]) // Unique per user (or global if userId is null)
+  @@index([category])
+  @@index([userId])
+  @@map("exercises")
+}
+
+// ============================================================================
+// ROUTINES DOMAIN
+// ============================================================================
+
+model Routine {
+  id         String   @id @default(cuid())
+  name       String
+  isActive   Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  days       RoutineDay[]
+  workoutSessions WorkoutSession[]
+
+  @@index([userId, isActive])
+  @@index([userId, isArchived])
+  @@map("routines")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model RoutineDay {
+  id        String    @id @default(cuid())
+  name      String    // e.g., "Push Day", "Leg Day"
+  dayOfWeek DayOfWeek
+  order     Int       // Order within routine (1, 2, 3...)
+
+  // Relations
+  routineId String
+  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  exercises RoutineExercise[]
+
+  @@unique([routineId, dayOfWeek])
+  @@index([routineId])
+  @@map("routine_days")
+}
+
+model RoutineExercise {
+  id           String @id @default(cuid())
+  order        Int    // Order within day (1, 2, 3...)
+  targetSets   Int    // Target number of sets
+  targetReps   String // e.g., "8-12", "10", "15-20"
+  targetWeight Float? // Target weight in kg (optional)
+  restSeconds  Int?   // Rest time between sets (optional)
+  notes        String?
+
+  // Relations
+  routineDayId String
+  routineDay   RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
+
+  exerciseId   String
+  exercise     Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  @@unique([routineDayId, exerciseId]) // No duplicate exercises per day
+  @@index([routineDayId])
+  @@map("routine_exercises")
+}
+
+// ============================================================================
+// WORKOUTS DOMAIN
+// ============================================================================
+
+enum WorkoutStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model WorkoutSession {
+  id          String        @id @default(cuid())
+  status      WorkoutStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  duration    Int?          // Duration in seconds
+  rating      Int?          // 1-5 star rating
+  notes       String?
+
+  // Relations
+  userId      String
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  routineId   String?
+  routine     Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull)
+
+  exercises   WorkoutExercise[]
+
+  @@index([userId, status])
+  @@index([userId, completedAt])
+  @@map("workout_sessions")
+}
+
+model WorkoutExercise {
+  id    String  @id @default(cuid())
+  order Int     // Order within session (1, 2, 3...)
+  notes String?
+
+  // Relations
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+
+  exerciseId       String
+  exercise         Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  sets             WorkoutSet[]
+
+  @@index([workoutSessionId])
+  @@map("workout_exercises")
+}
+
+model WorkoutSet {
+  id          String   @id @default(cuid())
+  setNumber   Int      // 1, 2, 3...
+  weight      Float    // Weight in kg
+  reps        Int      // Number of repetitions
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+
+  // Relations
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutExerciseId, setNumber])
+  @@index([workoutExerciseId])
+  @@map("workout_sets")
+}
