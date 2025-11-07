@@ -14,9 +14,7 @@ import {
 } from './schema';
 import type { AuthResponse, PasswordResetResponse, SafeUser } from './types';
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 function createSafeUser(user: {
   id: string;
@@ -36,9 +34,7 @@ function createSafeUser(user: {
   };
 }
 
-// ============================================================================
 // Register User
-// ============================================================================
 
 export async function registerUser(input: unknown): Promise<AuthResponse> {
   try {
@@ -107,9 +103,7 @@ export async function registerUser(input: unknown): Promise<AuthResponse> {
   }
 }
 
-// ============================================================================
 // Login User
-// ============================================================================
 
 export async function loginUser(input: unknown): Promise<AuthResponse> {
   try {
@@ -179,9 +173,7 @@ export async function loginUser(input: unknown): Promise<AuthResponse> {
   }
 }
 
-// ============================================================================
 // Logout User
-// ============================================================================
 
 export async function logoutUser(): Promise<{ success: boolean }> {
   try {
@@ -194,9 +186,7 @@ export async function logoutUser(): Promise<{ success: boolean }> {
   }
 }
 
-// ============================================================================
 // Request Password Reset (DUMMY - See technical-debt.md)
-// ============================================================================
 
 export async function requestPasswordReset(
   input: unknown
@@ -246,9 +236,7 @@ export async function requestPasswordReset(
   }
 }
 
-// ============================================================================
 // Confirm Password Reset (DUMMY - See technical-debt.md)
-// ============================================================================
 
 export async function confirmPasswordReset(
   input: unknown

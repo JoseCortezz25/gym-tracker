@@ -12,9 +12,7 @@ import {
 } from './schema';
 import type { ExercisesResponse, ExerciseResponse } from './types';
 
-// ============================================================================
 // Get All Exercises (Predefined + User Custom)
-// ============================================================================
 
 export async function getAllExercises(
   filters?: unknown
@@ -111,9 +109,7 @@ export async function getAllExercises(
   }
 }
 
-// ============================================================================
 // Get Exercise by ID
-// ============================================================================
 
 export async function getExerciseById(id: string): Promise<ExerciseResponse> {
   try {
@@ -140,9 +136,7 @@ export async function getExerciseById(id: string): Promise<ExerciseResponse> {
   }
 }
 
-// ============================================================================
 // Create Custom Exercise
-// ============================================================================
 
 export async function createCustomExercise(
   input: unknown
@@ -211,9 +205,7 @@ export async function createCustomExercise(
   }
 }
 
-// ============================================================================
 // Delete Custom Exercise
-// ============================================================================
 
 export async function deleteCustomExercise(
   id: string
@@ -253,7 +245,7 @@ export async function deleteCustomExercise(
     }
 
     // 3. Check if exercise is in use (in routines or workouts)
-    const inUseInRoutines = await prisma.routineExercise.findFirst({
+    const inUseInRoutines = await prisma.divisionExercise.findFirst({
       where: { exerciseId: id }
     });
 

@@ -3,9 +3,7 @@
 
 import { z } from 'zod';
 
-// ============================================================================
 // Validation Rules (from PRD 8.1)
-// ============================================================================
 
 const emailValidation = z
   .string()
@@ -18,9 +16,7 @@ const passwordValidation = z
   .regex(/[a-zA-Z]/, 'Password must contain at least one letter')
   .regex(/[0-9]/, 'Password must contain at least one number');
 
-// ============================================================================
 // Login Schema
-// ============================================================================
 
 export const loginSchema = z.object({
   email: emailValidation,
@@ -30,9 +26,7 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-// ============================================================================
 // Register Schema
-// ============================================================================
 
 export const registerSchema = z
   .object({
@@ -48,9 +42,7 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
-// ============================================================================
 // Password Reset Request Schema
-// ============================================================================
 
 export const passwordResetRequestSchema = z.object({
   email: emailValidation
@@ -60,9 +52,7 @@ export type PasswordResetRequestInput = z.infer<
   typeof passwordResetRequestSchema
 >;
 
-// ============================================================================
 // Password Reset Confirm Schema
-// ============================================================================
 
 export const passwordResetConfirmSchema = z
   .object({
@@ -79,9 +69,7 @@ export type PasswordResetConfirmInput = z.infer<
   typeof passwordResetConfirmSchema
 >;
 
-// ============================================================================
 // Password Requirements Helper (for UI display)
-// ============================================================================
 
 export const passwordRequirements = [
   {

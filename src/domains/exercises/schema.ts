@@ -3,15 +3,11 @@
 import { z } from 'zod';
 import { ExerciseCategory } from '@prisma/client';
 
-// ============================================================================
 // Exercise Category Enum
-// ============================================================================
 
 export const exerciseCategorySchema = z.nativeEnum(ExerciseCategory);
 
-// ============================================================================
 // Exercise Filters Schema
-// ============================================================================
 
 export const exerciseFiltersSchema = z.object({
   category: exerciseCategorySchema.optional(),
@@ -21,9 +17,7 @@ export const exerciseFiltersSchema = z.object({
 
 export type ExerciseFiltersInput = z.infer<typeof exerciseFiltersSchema>;
 
-// ============================================================================
 // Create Custom Exercise Schema
-// ============================================================================
 
 export const createCustomExerciseSchema = z.object({
   name: z

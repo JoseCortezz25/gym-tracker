@@ -1,57 +1,87 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Dumbbell } from 'lucide-react';
+import { Plus, Dumbbell, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { RoutineCard } from '@/domains/routines/components/routine-card';
 import { routinesTextMap } from '@/domains/routines/routines.text-map';
+import {
+  useRoutines,
+  useActivateRoutine,
+  useDeleteRoutine,
+  useArchiveRoutine
+} from '@/domains/routines/hooks/use-routines';
+import { Alert } from '@/components/ui/alert';
+import { useState } from 'react';
 
 /**
  * Routines List Page
  * View all workout routines and create new ones
- * UI-only implementation (mock data)
+ * Connected to real data with React Query
  */
 export default function RoutinesPage() {
   const text = routinesTextMap.routines;
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data (will be replaced with real data in Phase 2)
-  const mockRoutines = [
-    {
-      id: '1',
-      name: 'Push-Pull-Legs',
-      days: 6,
-      exercises: 42,
-      isActive: true
-    },
-    {
-      id: '2',
-      name: 'Full Body Split',
-      days: 3,
-      exercises: 18,
-      isActive: false
+  // Fetch routines (excludes archived)
+  const { data: routines, isLoading, error: fetchError } = useRoutines(false);
+
+  // Mutations
+  const activateMutation = useActivateRoutine();
+  const deleteMutation = useDeleteRoutine();
+  const archiveMutation = useArchiveRoutine();
+
+  const hasRoutines = routines && routines.length > 0;
+
+  const handleActivate = async (id: string) => {
+    try {
+      setError(null);
+      await activateMutation.mutateAsync(id);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to activate routine'
+      );
     }
-  ];
-
-  const hasRoutines = mockRoutines.length > 0;
-
-  const handleActivate = (id: string) => {
-    // eslint-disable-next-line no-console
-    console.log('Activate routine:', id);
-    // Business logic will be added in Phase 2
   };
 
-  const handleDelete = (id: string) => {
-    // eslint-disable-next-line no-console
-    console.log('Delete routine:', id);
-    // Business logic will be added in Phase 2
+  const handleDelete = async (id: string) => {
+    try {
+      setError(null);
+      await deleteMutation.mutateAsync(id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete routine');
+    }
   };
 
-  const handleArchive = (id: string) => {
-    // eslint-disable-next-line no-console
-    console.log('Archive routine:', id);
-    // Business logic will be added in Phase 2
+  const handleArchive = async (id: string) => {
+    try {
+      setError(null);
+      await archiveMutation.mutateAsync(id);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to archive routine'
+      );
+    }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (fetchError) {
+    return (
+      <Alert variant="destructive">
+        Failed to load routines. Please try again later.
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -68,22 +98,34 @@ export default function RoutinesPage() {
         </Button>
       </div>
 
+      {/* Error Alert */}
+      {error && <Alert variant="destructive">{error}</Alert>}
+
       {/* Routines Grid */}
       {hasRoutines ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mockRoutines.map(routine => (
-            <RoutineCard
-              key={routine.id}
-              id={routine.id}
-              name={routine.name}
-              days={routine.days}
-              exercises={routine.exercises}
-              isActive={routine.isActive}
-              onActivate={() => handleActivate(routine.id)}
-              onDelete={() => handleDelete(routine.id)}
-              onArchive={() => handleArchive(routine.id)}
-            />
-          ))}
+          {routines.map(routine => {
+            // Calculate stats from routine data (using divisions instead of days)
+            const totalDivisions = routine.divisions.length;
+            const totalExercises = routine.divisions.reduce(
+              (sum, division) => sum + division.exercises.length,
+              0
+            );
+
+            return (
+              <RoutineCard
+                key={routine.id}
+                id={routine.id}
+                name={routine.name}
+                days={totalDivisions}
+                exercises={totalExercises}
+                isActive={routine.isActive}
+                onActivate={() => handleActivate(routine.id)}
+                onDelete={() => handleDelete(routine.id)}
+                onArchive={() => handleArchive(routine.id)}
+              />
+            );
+          })}
         </div>
       ) : (
         <EmptyState

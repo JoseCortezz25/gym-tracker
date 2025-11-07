@@ -12,10 +12,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================================================
-// AUTH DOMAIN
-// ============================================================================
-
+ // AUTH DOMAIN
+ 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -33,10 +31,8 @@ model User {
   @@map("users")
 }
 
-// ============================================================================
-// EXERCISES DOMAIN
-// ============================================================================
-
+ // EXERCISES DOMAIN
+ 
 enum ExerciseCategory {
   CHEST
   BACK
@@ -60,8 +56,8 @@ model Exercise {
   user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Usage tracking
-  routineExercises RoutineExercise[]
-  workoutExercises WorkoutExercise[]
+  divisionExercises DivisionExercise[]
+  workoutExercises  WorkoutExercise[]
 
   @@unique([name, userId]) // Unique per user (or global if userId is null)
   @@index([category])
@@ -69,10 +65,8 @@ model Exercise {
   @@map("exercises")
 }
 
-// ============================================================================
-// ROUTINES DOMAIN
-// ============================================================================
-
+ // ROUTINES DOMAIN
+ 
 model Routine {
   id         String   @id @default(cuid())
   name       String
@@ -85,7 +79,7 @@ model Routine {
   userId     String
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  days       RoutineDay[]
+  divisions       TrainingDivision[]
   workoutSessions WorkoutSession[]
 
   @@index([userId, isActive])
@@ -93,58 +87,53 @@ model Routine {
   @@map("routines")
 }
 
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
-}
-
-model RoutineDay {
-  id        String    @id @default(cuid())
-  name      String    // e.g., "Push Day", "Leg Day"
-  dayOfWeek DayOfWeek
-  order     Int       // Order within routine (1, 2, 3...)
+model TrainingDivision {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Push Day", "Upper Body"
+  description String?  @db.VarChar(200) // Brief description of the division
+  frequency   Int      // Times per week (1-7)
+  order       Int      // Order within routine (1, 2, 3...)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   routineId String
   routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
-  exercises RoutineExercise[]
+  exercises DivisionExercise[]
 
-  @@unique([routineId, dayOfWeek])
+  @@unique([routineId, name]) // Unique division names per routine
   @@index([routineId])
-  @@map("routine_days")
+  @@map("training_divisions")
 }
 
-model RoutineExercise {
-  id           String @id @default(cuid())
-  order        Int    // Order within day (1, 2, 3...)
-  targetSets   Int    // Target number of sets
-  targetReps   String // e.g., "8-12", "10", "15-20"
-  targetWeight Float? // Target weight in kg (optional)
-  restSeconds  Int?   // Rest time between sets (optional)
-  notes        String?
+model DivisionExercise {
+  id           String   @id @default(cuid())
+  order        Int      // Order within division (1, 2, 3...)
+  targetSets   Int      // Target number of sets
+  targetReps   String   // e.g., "8-12", "10", "AMRAP"
+  targetWeight Float?   // Target weight in kg (optional)
+  restSeconds  Int?     // Rest time between sets (optional)
+  videoId      String?  @db.VarChar(11) // YouTube video ID (11 chars)
+  notes        String?  @db.Text // Notes for form cues, tips, etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  routineDayId String
-  routineDay   RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
+  divisionId String
+  division   TrainingDivision @relation(fields: [divisionId], references: [id], onDelete: Cascade)
 
-  exerciseId   String
-  exercise     Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
 
-  @@unique([routineDayId, exerciseId]) // No duplicate exercises per day
-  @@index([routineDayId])
-  @@map("routine_exercises")
+  @@unique([divisionId, exerciseId]) // No duplicate exercises per division
+  @@index([divisionId])
+  @@index([exerciseId]) // For load history queries
+  @@map("division_exercises")
 }
 
-// ============================================================================
-// WORKOUTS DOMAIN
-// ============================================================================
-
+ // WORKOUTS DOMAIN
+ 
 enum WorkoutStatus {
   IN_PROGRESS
   COMPLETED

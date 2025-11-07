@@ -3,17 +3,13 @@
 
 import type { User } from '@prisma/client';
 
-// ============================================================================
 // User Types
-// ============================================================================
 
 export type { User };
 
 export type SafeUser = Omit<User, 'passwordHash'>;
 
-// ============================================================================
 // Credentials Types
-// ============================================================================
 
 export interface LoginCredentials {
   email: string;
@@ -38,9 +34,7 @@ export interface PasswordResetConfirm {
   confirmPassword: string;
 }
 
-// ============================================================================
 // Server Action Response Types
-// ============================================================================
 
 export interface AuthSuccessResponse {
   success: true;

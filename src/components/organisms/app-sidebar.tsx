@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { LayoutDashboard, Dumbbell, History, Library } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, History, ListChecks } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Routines', href: '/routines', icon: Dumbbell },
-  { name: 'History', href: '/history', icon: History },
-  { name: 'Library', href: '/library', icon: Library }
+  { name: 'Exercises', href: '/exercises', icon: ListChecks },
+  { name: 'History', href: '/history', icon: History }
 ];
 
 /**

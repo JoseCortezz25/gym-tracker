@@ -1,27 +1,45 @@
+'use client';
+
 import Link from 'next/link';
-import { Flame, Calendar, Trophy, Dumbbell } from 'lucide-react';
+import { Flame, Calendar, Trophy, Dumbbell, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/molecules/stat-card';
 import { EmptyState } from '@/components/molecules/empty-state';
+import { Alert } from '@/components/ui/alert';
 import { workoutsTextMap } from '@/domains/workouts/workouts.text-map';
+import { useDashboardStats } from '@/domains/stats/hooks/use-stats';
 
 /**
  * Dashboard Page
  * Central hub showing activity summary and quick access to start training
- * UI-only implementation (mock data)
+ * Connected to real data with React Query
  */
 export default function DashboardPage() {
   const text = workoutsTextMap.dashboard;
 
-  // Mock data (will be replaced with real data in Phase 2)
-  const mockStats = {
-    streak: 5,
-    weeklyWorkouts: 3,
-    totalWorkouts: 24
-  };
+  // Fetch dashboard stats
+  const { data: stats, isLoading, error } = useDashboardStats();
 
-  const hasActiveRoutine = true; // Mock
-  const hasWorkouts = false; // Mock - set to true to see recent activity
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !stats) {
+    return (
+      <Alert variant="destructive">
+        Failed to load dashboard statistics. Please try again later.
+      </Alert>
+    );
+  }
+
+  const hasActiveRoutine = stats.activeRoutine !== null;
+  const hasWorkouts = stats.totalWorkouts > 0;
 
   return (
     <div className="space-y-8">
@@ -39,50 +57,53 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={Flame}
-          value={mockStats.streak}
+          value={stats.streak}
           label={text.stats.streak.label}
           iconColor="text-orange-600"
           ariaLabel={text.stats.streak.ariaLabel.replace(
             '{count}',
-            String(mockStats.streak)
+            String(stats.streak)
           )}
         />
         <StatCard
           icon={Calendar}
-          value={mockStats.weeklyWorkouts}
+          value={stats.weeklyWorkouts}
           label={text.stats.weeklyWorkouts.label}
           iconColor="text-blue-600"
           ariaLabel={text.stats.weeklyWorkouts.ariaLabel.replace(
             '{count}',
-            String(mockStats.weeklyWorkouts)
+            String(stats.weeklyWorkouts)
           )}
         />
         <StatCard
           icon={Trophy}
-          value={mockStats.totalWorkouts}
+          value={stats.totalWorkouts}
           label={text.stats.totalWorkouts.label}
           iconColor="text-green-600"
           ariaLabel={text.stats.totalWorkouts.ariaLabel.replace(
             '{count}',
-            String(mockStats.totalWorkouts)
+            String(stats.totalWorkouts)
           )}
         />
       </div>
 
       {/* Train Today Section */}
-      {hasActiveRoutine ? (
+      {hasActiveRoutine && stats.activeRoutine ? (
         <div className="rounded-xl border-2 border-blue-600 bg-blue-50 p-6 dark:bg-blue-950">
           <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-50">
             {text.trainToday.heading}
           </h2>
           <p className="mb-4 text-gray-600 dark:text-gray-400">
-            Push Day • 6 exercises
+            {stats.activeRoutine.nextDay
+              ? `${stats.activeRoutine.nextDay.name} • ${stats.activeRoutine.nextDay.exerciseCount} exercises`
+              : stats.activeRoutine.name}
           </p>
           <Button
             size="lg"
             className="w-full bg-blue-600 hover:bg-blue-700 sm:w-auto"
+            asChild
           >
-            {text.trainToday.button}
+            <Link href="/workout/active">{text.trainToday.button}</Link>
           </Button>
         </div>
       ) : (
@@ -114,7 +135,7 @@ export default function DashboardPage() {
 
         {hasWorkouts ? (
           <div className="space-y-4">
-            {/* Mock recent workout cards would go here */}
+            {/* Recent workout cards will be implemented in Phase 2F */}
             <p className="text-gray-600 dark:text-gray-400">
               Recent workouts will appear here
             </p>
