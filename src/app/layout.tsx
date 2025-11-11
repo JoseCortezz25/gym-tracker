@@ -15,8 +15,66 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Gym Tracker',
-  description: 'Track your progress, achieve your goals'
+  title: {
+    default: 'Gym Tracker - Track Every Rep, Build Real Progress',
+    template: '%s | Gym Tracker'
+  },
+  description:
+    'The complete training system for serious lifters who want structured workouts, measurable results, and zero BS. Track progress, build custom routines, and achieve your fitness goals.',
+  keywords: [
+    'gym tracker',
+    'workout tracker',
+    'fitness app',
+    'weightlifting tracker',
+    'progressive overload',
+    'workout log',
+    'gym log',
+    'training tracker',
+    'exercise tracker',
+    'strength training'
+  ],
+  authors: [{ name: 'Gym Tracker' }],
+  creator: 'Gym Tracker',
+  publisher: 'Gym Tracker',
+  metadataBase: new URL('https://gymtracker.app'),
+  alternates: {
+    canonical: '/'
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    title: 'Gym Tracker - Track Every Rep, Build Real Progress',
+    description:
+      'The complete training system for serious lifters. Track workouts, build custom routines, and achieve measurable results.',
+    siteName: 'Gym Tracker',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Gym Tracker - Workout Tracking App'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Gym Tracker - Track Every Rep, Build Real Progress',
+    description:
+      'The complete training system for serious lifters. Track workouts, build custom routines, and achieve measurable results.',
+    images: ['/og-image.png']
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1
+    }
+  }
 };
 
 export default function RootLayout({

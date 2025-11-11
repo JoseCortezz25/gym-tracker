@@ -1,0 +1,17 @@
+OG Image Placeholder
+
+This file is a placeholder for the Open Graph image (og-image.png).
+
+The actual image should be:
+- Size: 1200 x 630 pixels
+- Format: PNG or JPG
+- Content: Gym Tracker branding + tagline "Track Every Rep, Build Real Progress"
+- Background: Match app theme (dark mode friendly)
+- Include app screenshot or key visual elements
+
+To create the actual OG image:
+1. Use a design tool (Figma, Canva, etc.)
+2. Export as PNG at 1200x630px
+3. Name it: og-image.png
+4. Place in /public/ directory
+5. Delete this placeholder file

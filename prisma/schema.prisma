@@ -188,6 +188,7 @@ model WorkoutSet {
   reps        Int      // Number of repetitions
   isCompleted Boolean  @default(false)
   completedAt DateTime?
+  notes       String?  @db.Text // Per-set notes (form cues, difficulty, etc.)
 
   // Relations
   workoutExerciseId String

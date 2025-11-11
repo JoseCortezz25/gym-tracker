@@ -34,6 +34,11 @@ export const logSetSchema = z.object({
   setNumber: z.number().int().min(1).max(20),
   weight: z.number().min(0, 'Weight cannot be negative'),
   reps: z.number().int().min(0, 'Reps cannot be negative').max(999),
+  notes: z
+    .string()
+    .max(500, 'Notes must be 500 characters or less')
+    .trim()
+    .optional(),
   isCompleted: z.boolean().default(false)
 });
 

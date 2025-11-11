@@ -224,6 +224,7 @@ export const workoutsRepository = {
     setNumber: number;
     weight: number;
     reps: number;
+    notes?: string;
     isCompleted: boolean;
   }): Promise<WorkoutSet> {
     const uniqueConstraint = {
@@ -239,11 +240,13 @@ export const workoutsRepository = {
       },
       create: {
         ...data,
+        notes: data.notes || null,
         completedAt: data.isCompleted ? new Date() : null
       },
       update: {
         weight: data.weight,
         reps: data.reps,
+        notes: data.notes || null,
         isCompleted: data.isCompleted,
         completedAt: data.isCompleted ? new Date() : null
       }

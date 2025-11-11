@@ -66,6 +66,19 @@ export const workoutsTextMap = {
         label: 'Notes (optional)',
         placeholder: 'How did it feel?'
       },
+      setNotes: {
+        label: 'Set Notes (optional)',
+        placeholder: 'Form cues, difficulty, etc.'
+      },
+      expandSet: 'Tap to add details',
+      collapseSet: 'Collapse',
+      restTimer: {
+        title: 'Rest Timer',
+        countdown: '{seconds}s',
+        skip: 'Skip Rest',
+        ready: 'Ready for next set!',
+        notification: 'Rest complete'
+      },
       nextExercise: 'Next Exercise',
       previousExercise: 'Previous Exercise',
       exitConfirm: {
