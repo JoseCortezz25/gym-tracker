@@ -130,8 +130,7 @@ export default function ActiveWorkoutPage() {
       );
 
       // Show rest timer if configured and more sets remain
-      // TODO: Get restSeconds from DivisionExercise through workout data
-      const restSeconds = 90; // Default 90 seconds, should come from exercise config
+      const restSeconds = exercise.restSeconds || 90; // Use configured rest or default 90 seconds
 
       if (hasMoreSets && restSeconds > 0) {
         setCurrentRestSeconds(restSeconds);

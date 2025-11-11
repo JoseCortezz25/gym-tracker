@@ -164,9 +164,10 @@ model WorkoutSession {
 }
 
 model WorkoutExercise {
-  id    String  @id @default(cuid())
-  order Int     // Order within session (1, 2, 3...)
-  notes String?
+  id          String  @id @default(cuid())
+  order       Int     // Order within session (1, 2, 3...)
+  notes       String?
+  restSeconds Int?    // Rest time between sets (copied from DivisionExercise)
 
   // Relations
   workoutSessionId String

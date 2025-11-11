@@ -24,7 +24,8 @@ export const addWorkoutExerciseSchema = z.object({
   workoutSessionId: z.string().cuid('Invalid workout session ID'),
   exerciseId: z.string().cuid('Invalid exercise ID'),
   order: z.number().int().min(1),
-  notes: z.string().max(500).trim().optional()
+  notes: z.string().max(500).trim().optional(),
+  restSeconds: z.number().int().min(0).max(600).optional() // 0-10 minutes
 });
 
 // Workout Set Schemas

@@ -23,6 +23,7 @@ export type WorkoutSessionWithDetails = WorkoutSession & {
       category: string;
     };
     sets: WorkoutSet[];
+    restSeconds?: number | null;
   })[];
 };
 
@@ -184,6 +185,7 @@ export const workoutsRepository = {
     exerciseId: string;
     order: number;
     notes?: string;
+    restSeconds?: number;
   }): Promise<WorkoutExercise> {
     return prisma.workoutExercise.create({
       data
@@ -198,6 +200,7 @@ export const workoutsRepository = {
     data: {
       order?: number;
       notes?: string;
+      restSeconds?: number;
     }
   ): Promise<WorkoutExercise> {
     return prisma.workoutExercise.update({
