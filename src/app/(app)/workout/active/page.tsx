@@ -16,10 +16,12 @@ import {
   useLogSet,
   useCompleteWorkout
 } from '@/domains/workouts/hooks/use-workouts';
+import { SetRowExpandable } from '@/domains/workouts/components/set-row-expandable';
+import { RestTimerModal } from '@/domains/workouts/components/rest-timer-modal';
 
 /**
  * Active Workout Page
- * Real-time workout recording with auto-save and optimistic updates
+ * Real-time workout recording with auto-save, optimistic updates, and rest timer
  */
 export default function ActiveWorkoutPage() {
   const router = useRouter();
@@ -29,6 +31,14 @@ export default function ActiveWorkoutPage() {
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Rest timer state
+  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [currentRestSeconds, setCurrentRestSeconds] = useState(0);
+  const [nextSetInfo, setNextSetInfo] = useState<{
+    exerciseId: string;
+    setNumber: number;
+  } | null>(null);
 
   // Queries & Mutations
   const { data: workout, isLoading, error: fetchError } = useActiveWorkout();
@@ -60,7 +70,9 @@ export default function ActiveWorkoutPage() {
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return hrs > 0
-      ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs
+          .toString()
+          .padStart(2, '0')}`
       : `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -90,24 +102,65 @@ export default function ActiveWorkoutPage() {
     }
   };
 
-  const handleLogSet = async (
+  const handleSetComplete = async (
     exerciseId: string,
     setNumber: number,
-    weight: number,
-    reps: number
+    data: { weight: number; reps: number; notes?: string }
   ) => {
     try {
       setError(null);
+
+      // Log the set with notes
       await logSetMutation.mutateAsync({
         workoutExerciseId: exerciseId,
         setNumber,
-        weight,
-        reps,
+        weight: data.weight,
+        reps: data.reps,
+        notes: data.notes,
         isCompleted: true
       });
+
+      // Find the exercise and check if more sets remain
+      const exercise = workout?.exercises.find(e => e.id === exerciseId);
+      if (!exercise) return;
+
+      const nextSetNumber = setNumber + 1;
+      const hasMoreSets = exercise.sets.some(
+        s => s.setNumber === nextSetNumber && !s.isCompleted
+      );
+
+      // Show rest timer if configured and more sets remain
+      // TODO: Get restSeconds from DivisionExercise through workout data
+      const restSeconds = 90; // Default 90 seconds, should come from exercise config
+
+      if (hasMoreSets && restSeconds > 0) {
+        setCurrentRestSeconds(restSeconds);
+        setNextSetInfo({ exerciseId, setNumber: nextSetNumber });
+        setShowRestTimer(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log set');
     }
+  };
+
+  const handleRestTimerComplete = () => {
+    // Auto-scroll to next set
+    if (nextSetInfo) {
+      const nextSetElement = document.querySelector(
+        `[data-set-id="${nextSetInfo.exerciseId}-${nextSetInfo.setNumber}"]`
+      );
+      if (nextSetElement) {
+        nextSetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Try to expand the next set automatically
+        const button = nextSetElement.querySelector('button');
+        if (button) {
+          setTimeout(() => {
+            button.click();
+          }, 300);
+        }
+      }
+    }
+    setNextSetInfo(null);
   };
 
   const handleCompleteWorkout = async () => {
@@ -134,7 +187,7 @@ export default function ActiveWorkoutPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -153,12 +206,10 @@ export default function ActiveWorkoutPage() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="space-y-4 text-center">
-          <Play className="mx-auto h-12 w-12 text-gray-400" />
+          <Play className="text-muted-foreground mx-auto h-12 w-12" />
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-              No Active Workout
-            </h2>
-            <p className="mt-1 text-gray-600 dark:text-gray-400">
+            <h2 className="text-xl font-semibold">No Active Workout</h2>
+            <p className="text-muted-foreground mt-1">
               Start a new workout session to begin tracking
             </p>
           </div>
@@ -184,32 +235,26 @@ export default function ActiveWorkoutPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-            <Check className="h-10 w-10 text-green-600 dark:text-green-400" />
+          <div className="bg-primary/10 mx-auto flex h-20 w-20 items-center justify-center rounded-full">
+            <Check className="text-primary h-10 w-10" />
           </div>
 
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-              Great Workout!
-            </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              How did it go?
-            </p>
+            <h1 className="text-2xl font-bold">Great Workout!</h1>
+            <p className="text-muted-foreground mt-2">How did it go?</p>
           </div>
 
           {/* Stats Summary */}
-          <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-gray-600 dark:text-gray-400">
+          <div className="bg-muted space-y-2 rounded-lg border p-4">
+            <p className="text-muted-foreground">
               Duration:{' '}
-              <span className="font-semibold text-gray-900 dark:text-gray-50">
+              <span className="font-semibold">
                 {formatTime(elapsedSeconds)}
               </span>
             </p>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted-foreground">
               Exercises:{' '}
-              <span className="font-semibold text-gray-900 dark:text-gray-50">
-                {workout.exercises.length}
-              </span>
+              <span className="font-semibold">{workout.exercises.length}</span>
             </p>
           </div>
 
@@ -268,7 +313,7 @@ export default function ActiveWorkoutPage() {
             Exit
           </Link>
         </Button>
-        <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-50">
+        <div className="flex items-center gap-2 text-lg font-semibold">
           <Timer className="h-5 w-5" />
           {formatTime(elapsedSeconds)}
         </div>
@@ -278,7 +323,7 @@ export default function ActiveWorkoutPage() {
 
       {/* Progress */}
       <div className="space-y-2">
-        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+        <div className="text-muted-foreground flex justify-between text-sm">
           <span>Overall Progress</span>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -287,19 +332,17 @@ export default function ActiveWorkoutPage() {
 
       {/* Routine Info */}
       {workout.routine && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Routine</p>
-          <p className="font-semibold text-gray-900 dark:text-gray-50">
-            {workout.routine.name}
-          </p>
+        <div className="bg-muted rounded-lg border p-4">
+          <p className="text-muted-foreground text-sm">Routine</p>
+          <p className="font-semibold">{workout.routine.name}</p>
         </div>
       )}
 
       {/* Exercises List */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {workout.exercises.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400">
+          <div className="border-muted rounded-lg border-2 border-dashed p-8 text-center">
+            <p className="text-muted-foreground">
               No exercises added yet. Add exercises to start tracking.
             </p>
           </div>
@@ -308,14 +351,23 @@ export default function ActiveWorkoutPage() {
             <ExerciseCard
               key={exercise.id}
               exercise={exercise}
-              onLogSet={handleLogSet}
+              onSetComplete={handleSetComplete}
+              isLoading={logSetMutation.isPending}
             />
           ))
         )}
       </div>
 
+      {/* Rest Timer Modal */}
+      <RestTimerModal
+        isOpen={showRestTimer}
+        onOpenChange={setShowRestTimer}
+        restSeconds={currentRestSeconds}
+        onComplete={handleRestTimerComplete}
+      />
+
       {/* Complete Workout Button */}
-      <div className="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="bg-background fixed right-0 bottom-0 left-0 border-t p-4">
         <div className="mx-auto max-w-7xl">
           <Button
             size="lg"
@@ -330,7 +382,7 @@ export default function ActiveWorkoutPage() {
   );
 }
 
-// Exercise Card Component
+// Exercise Card Component - Refactored
 
 interface ExerciseCardProps {
   exercise: {
@@ -342,103 +394,68 @@ interface ExerciseCardProps {
       setNumber: number;
       weight: number;
       reps: number;
+      notes?: string;
       isCompleted: boolean;
     }>;
   };
-  onLogSet: (
+  onSetComplete: (
     exerciseId: string,
     setNumber: number,
-    weight: number,
-    reps: number
+    data: { weight: number; reps: number; notes?: string }
   ) => Promise<void>;
+  isLoading?: boolean;
 }
 
-function ExerciseCard({ exercise, onLogSet }: ExerciseCardProps) {
-  const [sets, setSets] = useState(
-    exercise.sets.length > 0
-      ? exercise.sets
-      : [{ setNumber: 1, weight: 0, reps: 0, isCompleted: false }]
-  );
+function ExerciseCard({
+  exercise,
+  onSetComplete,
+  isLoading
+}: ExerciseCardProps) {
+  const [localSets, setLocalSets] = useState(exercise.sets);
+
+  // Sync with server data when it changes
+  useEffect(() => {
+    setLocalSets(exercise.sets);
+  }, [exercise.sets]);
 
   const handleAddSet = () => {
-    setSets([
-      ...sets,
-      { setNumber: sets.length + 1, weight: 0, reps: 0, isCompleted: false }
+    const newSetNumber = localSets.length + 1;
+    setLocalSets([
+      ...localSets,
+      {
+        setNumber: newSetNumber,
+        weight: localSets[localSets.length - 1]?.weight || 0,
+        reps: localSets[localSets.length - 1]?.reps || 0,
+        isCompleted: false
+      }
     ]);
   };
 
-  const handleUpdateSet = (
-    index: number,
-    field: 'weight' | 'reps',
-    value: number
+  const handleComplete = async (
+    setNumber: number,
+    data: { weight: number; reps: number; notes?: string }
   ) => {
-    const newSets = [...sets];
-    newSets[index] = { ...newSets[index], [field]: value };
-    setSets(newSets);
-  };
-
-  const handleCompleteSet = async (index: number) => {
-    const set = sets[index];
-    await onLogSet(exercise.id, set.setNumber, set.weight, set.reps);
-
-    const newSets = [...sets];
-    newSets[index] = { ...newSets[index], isCompleted: true };
-    setSets(newSets);
+    await onSetComplete(exercise.id, setNumber, data);
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div className="bg-card space-y-3 rounded-lg border p-4 shadow-sm">
       {/* Exercise Header */}
-      <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-50">
-        {exercise.exercise.name}
-      </h3>
+      <h3 className="text-lg font-semibold">{exercise.exercise.name}</h3>
 
-      {/* Sets Table */}
+      {/* Sets - Using Expandable Rows */}
       <div className="space-y-2">
-        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm text-gray-600 dark:text-gray-400">
-          <div className="w-8">Set</div>
-          <div>Weight (kg)</div>
-          <div>Reps</div>
-          <div className="w-16"></div>
-        </div>
-
-        {sets.map((set, index) => (
+        {localSets.map((set, idx) => (
           <div
-            key={index}
-            className={`grid grid-cols-[auto_1fr_1fr_auto] gap-3 ${
-              set.isCompleted ? 'opacity-50' : ''
-            }`}
+            key={set.setNumber}
+            data-set-id={`${exercise.id}-${set.setNumber}`}
           >
-            <div className="flex w-8 items-center font-semibold text-gray-900 dark:text-gray-50">
-              {set.setNumber}
-            </div>
-            <Input
-              type="number"
-              value={set.weight}
-              onChange={e =>
-                handleUpdateSet(index, 'weight', Number(e.target.value))
-              }
-              disabled={set.isCompleted}
-              min={0}
-              step={2.5}
+            <SetRowExpandable
+              set={set}
+              onComplete={data => handleComplete(set.setNumber, data)}
+              isLoading={isLoading}
+              previousSet={idx > 0 ? localSets[idx - 1] : undefined}
             />
-            <Input
-              type="number"
-              value={set.reps}
-              onChange={e =>
-                handleUpdateSet(index, 'reps', Number(e.target.value))
-              }
-              disabled={set.isCompleted}
-              min={0}
-            />
-            <Button
-              size="sm"
-              onClick={() => handleCompleteSet(index)}
-              disabled={set.isCompleted || set.weight === 0 || set.reps === 0}
-              variant={set.isCompleted ? 'outline' : 'default'}
-            >
-              {set.isCompleted ? <Check className="h-4 w-4" /> : 'Log'}
-            </Button>
           </div>
         ))}
       </div>
@@ -448,7 +465,7 @@ function ExerciseCard({ exercise, onLogSet }: ExerciseCardProps) {
         variant="ghost"
         size="sm"
         onClick={handleAddSet}
-        className="mt-3 w-full"
+        className="w-full"
       >
         <Plus className="mr-2 h-4 w-4" />
         Add Set
