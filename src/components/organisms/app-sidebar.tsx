@@ -12,7 +12,8 @@ import {
   User
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { logoutUser } from '@/domains/auth/actions';
 
 import {
   Sidebar,
@@ -88,6 +89,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
  */
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -222,11 +233,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    window.location.href = '/api/auth/signout';
-                  }}
-                >
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 size-4" />
                   <span>Cerrar sesión</span>
                 </DropdownMenuItem>
