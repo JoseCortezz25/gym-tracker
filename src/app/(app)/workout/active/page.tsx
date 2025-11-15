@@ -18,6 +18,7 @@ import {
 } from '@/domains/workouts/hooks/use-workouts';
 import { SetRowExpandable } from '@/domains/workouts/components/set-row-expandable';
 import { RestTimerModal } from '@/domains/workouts/components/rest-timer-modal';
+import type { WorkoutExerciseWithDetails } from '@/domains/workouts/types';
 
 /**
  * Active Workout Page
@@ -384,19 +385,7 @@ export default function ActiveWorkoutPage() {
 // Exercise Card Component - Refactored
 
 interface ExerciseCardProps {
-  exercise: {
-    id: string;
-    exercise: {
-      name: string;
-    };
-    sets: Array<{
-      setNumber: number;
-      weight: number;
-      reps: number;
-      notes?: string;
-      isCompleted: boolean;
-    }>;
-  };
+  exercise: WorkoutExerciseWithDetails;
   onSetComplete: (
     exerciseId: string,
     setNumber: number,
@@ -419,13 +408,18 @@ function ExerciseCard({
 
   const handleAddSet = () => {
     const newSetNumber = localSets.length + 1;
+    const lastSet = localSets[localSets.length - 1];
     setLocalSets([
       ...localSets,
       {
+        id: `temp-${Date.now()}`, // Temporary ID for local set
         setNumber: newSetNumber,
-        weight: localSets[localSets.length - 1]?.weight || 0,
-        reps: localSets[localSets.length - 1]?.reps || 0,
-        isCompleted: false
+        weight: lastSet?.weight || 0,
+        reps: lastSet?.reps || 0,
+        isCompleted: false,
+        notes: null,
+        completedAt: null,
+        workoutExerciseId: exercise.id
       }
     ]);
   };

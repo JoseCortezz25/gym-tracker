@@ -18,7 +18,7 @@ interface SetData {
   setNumber: number;
   weight: number;
   reps: number;
-  notes?: string;
+  notes?: string | null;
   isCompleted: boolean;
 }
 

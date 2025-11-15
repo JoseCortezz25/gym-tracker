@@ -169,7 +169,8 @@ export function useLogSet() {
                     weight: newSet.weight,
                     reps: newSet.reps,
                     isCompleted: newSet.isCompleted,
-                    completedAt: newSet.isCompleted ? new Date() : null
+                    completedAt: newSet.isCompleted ? new Date() : null,
+                    notes: newSet.notes || null
                   };
 
                   const updatedSets =

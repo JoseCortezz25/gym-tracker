@@ -12,27 +12,29 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
- // AUTH DOMAIN
- 
+// AUTH DOMAIN
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  name          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLoginAt   DateTime?
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
 
   // Relations
-  routines       Routine[]
-  workoutSessions WorkoutSession[]
-  customExercises Exercise[]
+  routines           Routine[]
+  workoutSessions    WorkoutSession[]
+  customExercises    Exercise[]
+  workoutAssessments WorkoutAssessment[]
+  weightHistory      WeightHistory[]
 
   @@map("users")
 }
 
- // EXERCISES DOMAIN
- 
+// EXERCISES DOMAIN
+
 enum ExerciseCategory {
   CHEST
   BACK
@@ -52,12 +54,14 @@ model Exercise {
   createdAt    DateTime         @default(now())
 
   // Relations (null if predefined exercise)
-  userId       String?
-  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Usage tracking
   divisionExercises DivisionExercise[]
   workoutExercises  WorkoutExercise[]
+  splitExercises    SplitExercise[]
+  weightHistory     WeightHistory[]
 
   @@unique([name, userId]) // Unique per user (or global if userId is null)
   @@index([category])
@@ -65,8 +69,8 @@ model Exercise {
   @@map("exercises")
 }
 
- // ROUTINES DOMAIN
- 
+// ROUTINES DOMAIN
+
 model Routine {
   id         String   @id @default(cuid())
   name       String
@@ -76,8 +80,8 @@ model Routine {
   updatedAt  DateTime @updatedAt
 
   // Relations
-  userId     String
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   divisions       TrainingDivision[]
   workoutSessions WorkoutSession[]
@@ -89,10 +93,10 @@ model Routine {
 
 model TrainingDivision {
   id          String   @id @default(cuid())
-  name        String   // e.g., "Push Day", "Upper Body"
+  name        String // e.g., "Push Day", "Upper Body"
   description String?  @db.VarChar(200) // Brief description of the division
-  frequency   Int      // Times per week (1-7)
-  order       Int      // Order within routine (1, 2, 3...)
+  frequency   Int // Times per week (1-7)
+  order       Int // Order within routine (1, 2, 3...)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -109,11 +113,11 @@ model TrainingDivision {
 
 model DivisionExercise {
   id           String   @id @default(cuid())
-  order        Int      // Order within division (1, 2, 3...)
-  targetSets   Int      // Target number of sets
-  targetReps   String   // e.g., "8-12", "10", "AMRAP"
-  targetWeight Float?   // Target weight in kg (optional)
-  restSeconds  Int?     // Rest time between sets (optional)
+  order        Int // Order within division (1, 2, 3...)
+  targetSets   Int // Target number of sets
+  targetReps   String // e.g., "8-12", "10", "AMRAP"
+  targetWeight Float? // Target weight in kg (optional)
+  restSeconds  Int? // Rest time between sets (optional)
   videoId      String?  @db.VarChar(11) // YouTube video ID (11 chars)
   notes        String?  @db.Text // Notes for form cues, tips, etc.
   createdAt    DateTime @default(now())
@@ -132,8 +136,8 @@ model DivisionExercise {
   @@map("division_exercises")
 }
 
- // WORKOUTS DOMAIN
- 
+// WORKOUTS DOMAIN
+
 enum WorkoutStatus {
   IN_PROGRESS
   COMPLETED
@@ -145,51 +149,61 @@ model WorkoutSession {
   status      WorkoutStatus @default(IN_PROGRESS)
   startedAt   DateTime      @default(now())
   completedAt DateTime?
-  duration    Int?          // Duration in seconds
-  rating      Int?          // 1-5 star rating
+  duration    Int? // Duration in seconds
+  rating      Int? // 1-5 star rating
   notes       String?
 
   // Relations
-  userId      String
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  routineId   String?
-  routine     Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  routineId String?
+  routine   Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull)
 
-  exercises   WorkoutExercise[]
+  // Workout Splits relations
+  splitId String?
+  split   WorkoutSplit? @relation(fields: [splitId], references: [id], onDelete: SetNull)
+
+  assessmentId String?
+  assessment   WorkoutAssessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  exercises     WorkoutExercise[]
+  weightHistory WeightHistory[]
 
   @@index([userId, status])
   @@index([userId, completedAt])
+  @@index([splitId])
+  @@index([assessmentId])
   @@map("workout_sessions")
 }
 
 model WorkoutExercise {
   id          String  @id @default(cuid())
-  order       Int     // Order within session (1, 2, 3...)
+  order       Int // Order within session (1, 2, 3...)
   notes       String?
-  restSeconds Int?    // Rest time between sets (copied from DivisionExercise)
+  restSeconds Int? // Rest time between sets (copied from DivisionExercise)
 
   // Relations
   workoutSessionId String
   workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
 
-  exerciseId       String
-  exercise         Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
 
-  sets             WorkoutSet[]
+  sets WorkoutSet[]
 
   @@index([workoutSessionId])
   @@map("workout_exercises")
 }
 
 model WorkoutSet {
-  id          String   @id @default(cuid())
-  setNumber   Int      // 1, 2, 3...
-  weight      Float    // Weight in kg
-  reps        Int      // Number of repetitions
-  isCompleted Boolean  @default(false)
+  id          String    @id @default(cuid())
+  setNumber   Int // 1, 2, 3...
+  weight      Float // Weight in kg
+  reps        Int // Number of repetitions
+  isCompleted Boolean   @default(false)
   completedAt DateTime?
-  notes       String?  @db.Text // Per-set notes (form cues, difficulty, etc.)
+  notes       String?   @db.Text // Per-set notes (form cues, difficulty, etc.)
 
   // Relations
   workoutExerciseId String
@@ -198,4 +212,104 @@ model WorkoutSet {
   @@unique([workoutExerciseId, setNumber])
   @@index([workoutExerciseId])
   @@map("workout_sets")
+}
+
+// WORKOUT SPLITS DOMAIN
+
+enum TrainingFocus {
+  LEGS
+  ARMS
+  FULL_BODY
+  CORE
+}
+
+model WorkoutAssessment {
+  id                String        @id @default(cuid())
+  frequency         Int // Days per week (3-6)
+  trainingFocus     TrainingFocus
+  currentSplitIndex Int           @default(0) // Current split in circular progression
+  isActive          Boolean       @default(true) // Only one active per user
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  splits          WorkoutSplit[]
+  workoutSessions WorkoutSession[]
+
+  @@unique([userId, isActive]) // Only one active assessment per user
+  @@index([userId])
+  @@map("workout_assessments")
+}
+
+model WorkoutSplit {
+  id          String   @id @default(cuid())
+  name        String // e.g., "Legs & Abs", "Push Day"
+  subtitle    String? // e.g., "Quads focused"
+  splitLetter String // A, B, C, D, etc.
+  order       Int // Order in sequence (0, 1, 2...)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  assessmentId String
+  assessment   WorkoutAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  exercises       SplitExercise[]
+  workoutSessions WorkoutSession[]
+
+  @@unique([assessmentId, splitLetter]) // Unique split letters per assessment
+  @@unique([assessmentId, order]) // Unique order per assessment
+  @@index([assessmentId])
+  @@map("workout_splits")
+}
+
+model SplitExercise {
+  id           String   @id @default(cuid())
+  order        Int // Order within split (1, 2, 3...)
+  targetSets   Int // Target number of sets
+  targetReps   String // e.g., "8-12", "10", "AMRAP"
+  targetWeight Float? // Target weight in kg (optional)
+  restSeconds  Int? // Rest time between sets (optional)
+  videoId      String?  @db.VarChar(11) // YouTube video ID (11 chars)
+  imageUrl     String? // Exercise image URL
+  notes        String?  @db.Text // Notes for form cues, tips, etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  splitId String
+  split   WorkoutSplit @relation(fields: [splitId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  @@unique([splitId, exerciseId]) // No duplicate exercises per split
+  @@index([splitId])
+  @@index([exerciseId])
+  @@map("split_exercises")
+}
+
+model WeightHistory {
+  id          String   @id @default(cuid())
+  weight      Float // Weight in kg
+  reps        Int // Number of reps
+  sets        Int // Number of sets completed
+  completedAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  workoutSessionId String?
+  workoutSession   WorkoutSession? @relation(fields: [workoutSessionId], references: [id], onDelete: SetNull)
+
+  @@index([exerciseId, userId, completedAt(sort: Desc)]) // Fast weight history queries
+  @@index([userId, completedAt(sort: Desc)])
+  @@map("weight_history")
 }

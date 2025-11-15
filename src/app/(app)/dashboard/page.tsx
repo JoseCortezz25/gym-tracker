@@ -103,7 +103,7 @@ export default function DashboardPage() {
             className="w-full bg-blue-600 hover:bg-blue-700 sm:w-auto"
             asChild
           >
-            <Link href="/workout/active">{text.trainToday.button}</Link>
+            <Link href="/my-workout">{text.trainToday.button}</Link>
           </Button>
         </div>
       ) : (
@@ -112,7 +112,9 @@ export default function DashboardPage() {
             {text.trainToday.noRoutine}
           </p>
           <Button variant="outline" size="lg" asChild>
-            <Link href="/routines">{text.trainToday.setRoutine}</Link>
+            <Link href="/my-workout/assessment">
+              {text.trainToday.setRoutine}
+            </Link>
           </Button>
         </div>
       )}
@@ -147,7 +149,7 @@ export default function DashboardPage() {
             message="Create a routine and start your first workout to track your progress"
             customAction={
               <Button size="lg" asChild>
-                <Link href="/routines">My Routines</Link>
+                <Link href="/my-workout">Mi Entrenamiento</Link>
               </Button>
             }
           />
