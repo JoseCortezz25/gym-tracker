@@ -5,14 +5,15 @@ import {
   LayoutDashboard,
   Dumbbell,
   ListChecks,
-  ChevronRight,
   ChevronsUpDown,
   LogOut,
   Settings,
-  User
+  User,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { logoutUser } from '@/domains/auth/actions';
 
 import {
@@ -51,21 +52,7 @@ const navigationItems = [
   {
     title: 'Mi Entrenamiento',
     url: '/my-workout',
-    icon: Dumbbell,
-    items: [
-      {
-        title: 'Divisiones Actuales',
-        url: '/my-workout'
-      },
-      {
-        title: 'Evaluación',
-        url: '/my-workout/assessment'
-      },
-      {
-        title: 'Calendario',
-        url: '/my-workout/calendar'
-      }
-    ]
+    icon: Dumbbell
   },
   {
     title: 'Ejercicios',
@@ -95,8 +82,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     try {
       await logoutUser();
       router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      toast.error('Error al cerrar sesión. Por favor, intenta de nuevo.');
     }
   };
 

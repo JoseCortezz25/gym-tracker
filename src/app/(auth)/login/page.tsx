@@ -48,11 +48,7 @@ export default async function LoginPage({
       </div>
 
       {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <p className="text-sm">{error}</p>
-        </Alert>
-      )}
+      {error && <Alert variant="destructive">{error}</Alert>}
 
       {/* Login Form */}
       <form
